@@ -13,6 +13,13 @@ return new class extends Migration
     {
         Schema::create('leaves', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade');
+            $table->date('start_date');
+            $table->date('end_date');
+            $table->string('type');
+            $table->string('status');
+            $table->text('reason')->nullable();
+            $table->integer('days');
             $table->timestamps();
         });
     }

@@ -13,6 +13,11 @@ return new class extends Migration
     {
         Schema::create('performances', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade');
+            $table->date('review_date');
+            $table->integer('score');
+            $table->text('comments')->nullable();
+            $table->string('reviewer');
             $table->timestamps();
         });
     }

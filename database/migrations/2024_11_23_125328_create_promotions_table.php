@@ -13,6 +13,10 @@ return new class extends Migration
     {
         Schema::create('promotions', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade');
+            $table->date('promotion_date');
+            $table->string('new_position');
+            $table->decimal('salary_increment', 10, 2);
             $table->timestamps();
         });
     }

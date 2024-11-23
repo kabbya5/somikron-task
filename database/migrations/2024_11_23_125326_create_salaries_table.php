@@ -13,6 +13,11 @@ return new class extends Migration
     {
         Schema::create('salaries', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade');
+            $table->decimal('base_salary', 10, 2);
+            $table->decimal('bonus', 10, 2)->nullable();
+            $table->decimal('deductions', 10, 2)->nullable();
+            $table->date('effective_date');
             $table->timestamps();
         });
     }
