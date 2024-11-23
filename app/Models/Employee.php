@@ -24,7 +24,7 @@ class Employee extends Model
         return $this->hasOne(Salary::class);
     }
 
-    public function attendance()
+    public function attendances()
     {
         return $this->hasMany(Attendance::class);
     }

@@ -21,7 +21,7 @@ class EmployeeSeeder extends Seeder
             $attendanceCount = rand(30, 40);
             $leaveCount = rand(5, 10);
             $performanceCount = rand(1, 10);
-            $promotionCount = rand(1, 5);
+            $promotionCount = rand(0, 5);
             $salaryCount = 1;
 
             Attendance::factory($attendanceCount)->create([
