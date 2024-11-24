@@ -2,40 +2,117 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Employee;
-use Illuminate\Http\Request;
+use App\Jobs\GenerateEmployeePDF;
 use Barryvdh\DomPDF\Facade\Pdf;
 use DB;
 
 class PDFGenaratorController extends Controller
 {
-    public function index(){
+    public function index() {
         $employees = DB::select("
             SELECT
                 employees.name,
                 employees.position,
                 departments.name AS department_name,
                 salaries.base_salary,
-                COUNT(DISTINCT attendances.id) AS attendance_count,
-                COUNT(DISTINCT leaves.id) AS leave_count,
-                COUNT(DISTINCT performances.id) AS performance_count,
-                COUNT(DISTINCT promotions.id) AS promotion_count
+                (
+                    SELECT COUNT(DISTINCT attendances.id)
+                    FROM attendances
+                    WHERE attendances.employee_id = employees.id AND attendances.status = 'Present'
+                ) AS attendance_count,
+                (
+                    SELECT COUNT(DISTINCT attendances.id)
+                    FROM attendances
+                    WHERE attendances.employee_id = employees.id AND attendances.status = 'Absent'
+                ) AS absent_count,
+                (
+                    SELECT ROUND(AVG(present_at), 2)
+                    FROM attendances
+                    WHERE attendances.employee_id = employees.id AND attendances.status = 'Present'
+                ) AS average_present,
+                (
+                    SELECT ROUND(AVG(leave_at), 2)
+                    FROM attendances
+                    WHERE attendances.employee_id = employees.id AND attendances.status = 'Present'
+                ) AS average_leave,
+                (
+                    SELECT COUNT(DISTINCT leaves.id)
+                    FROM leaves
+                    WHERE leaves.employee_id = employees.id
+                ) AS leave_count,
+
+                (
+                    SELECT ROUND(AVG(score), 2)
+                    FROM performances
+                    WHERE performances.employee_id = employees.id
+                ) AS average_score,
+                (
+                    SELECT COUNT(DISTINCT promotions.id)
+                    FROM promotions
+                    WHERE promotions.employee_id = employees.id
+                ) AS promotion_count
             FROM employees
             LEFT JOIN departments ON employees.department_id = departments.id
             LEFT JOIN salaries ON employees.id = salaries.employee_id
-            LEFT JOIN attendances ON employees.id = attendances.employee_id AND attendances.status = 'Present'
-            LEFT JOIN leaves ON employees.id = leaves.employee_id
-            LEFT JOIN performances ON employees.id = performances.employee_id
-            LEFT JOIN promotions ON employees.id = promotions.employee_id
-            GROUP BY employees.id, departments.name, salaries.base_salary, employees.name,employees.position
         ");
 
         return view('welcome', compact('employees'));
     }
 
     public function pdfGenerate(){
-        $employees = Employee::with(['department', 'salary', 'attendances', 'leaves'])->get();
+
+        // GenerateEmployeePDF::dispatch();
+        $employees = DB::select("
+        SELECT
+            employees.name,
+            employees.position,
+            departments.name AS department_name,
+            salaries.base_salary,
+            (
+                SELECT COUNT(DISTINCT attendances.id)
+                FROM attendances
+                WHERE attendances.employee_id = employees.id AND attendances.status = 'Present'
+            ) AS attendance_count,
+            (
+                SELECT COUNT(DISTINCT attendances.id)
+                FROM attendances
+                WHERE attendances.employee_id = employees.id AND attendances.status = 'Absent'
+            ) AS absent_count,
+            (
+                SELECT ROUND(AVG(present_at), 2)
+                FROM attendances
+                WHERE attendances.employee_id = employees.id AND attendances.status = 'Present'
+            ) AS average_present,
+            (
+                SELECT ROUND(AVG(leave_at), 2)
+                FROM attendances
+                WHERE attendances.employee_id = employees.id AND attendances.status = 'Present'
+            ) AS average_leave,
+            (
+                SELECT COUNT(DISTINCT leaves.id)
+                FROM leaves
+                WHERE leaves.employee_id = employees.id
+            ) AS leave_count,
+
+            (
+                SELECT ROUND(AVG(score), 2)
+                FROM performances
+                WHERE performances.employee_id = employees.id
+            ) AS average_score,
+            (
+                SELECT COUNT(DISTINCT promotions.id)
+                FROM promotions
+                WHERE promotions.employee_id = employees.id
+            ) AS promotion_count
+        FROM employees
+        LEFT JOIN departments ON employees.department_id = departments.id
+        LEFT JOIN salaries ON employees.id = salaries.employee_id
+
+        LIMIT 400
+    ");
+
         $pdf = Pdf::loadView('pdf', compact('employees'));
+
         return $pdf->stream('employees.pdf');
     }
 }

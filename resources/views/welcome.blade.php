@@ -20,7 +20,6 @@
                         <a href="/generate/pdf" class="font-semibold text-xl text-black">Generate PDF</a>
                     </div>
                 </div>
-
                 <div class="container mx-auto py-3 mt-3">
                     <div class="container mx-auto px-4 py-8">
                         <h2 class="text-2xl font-semibold text-gray-800 mb-4">Monthly Employee Details</h2>
@@ -34,8 +33,11 @@
                                         <th class="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase">Position</th>
                                         <th class="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase">Salary</th>
                                         <th class="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase">Attendance</th>
-                                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase">Leaves</th>
-                                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase">Performances</th>
+                                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase">Average Attend</th>
+                                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase"> Average Leave </th>
+                                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase"> Leaves </th>
+                                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase"> Absents </th>
+                                        <th class="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase">Average Performances</th>
                                         <th class="px-6 py-3 text-left text-sm font-medium text-gray-700 uppercase">Promotions</th>
                                     </tr>
                                 </thead>
@@ -48,8 +50,11 @@
                                             <td class="px-6 py-4 text-sm text-gray-900">{{$employee->position}}</td>
                                             <td class="px-6 py-4 text-sm text-gray-500">{{$employee->base_salary . ' TK'}}</td>
                                             <td class="px-6 py-4 text-sm text-gray-500">{{$employee->attendance_count}}</td>
-                                            <td class="px-6 py-4 text-sm text-gray-900">{{$employee->leave_count}}</td>
-                                            <td class="px-6 py-4 text-sm text-gray-900">{{$employee->performance_count}}</td>
+                                            <td class="px-6 py-4 text-sm text-gray-500">{{$employee->average_present . ' AM'}}</td>
+                                            <td class="px-6 py-4 text-sm text-gray-500">{{$employee->average_leave . ' PM'}}</td>
+                                            <td class="px-6 py-4 text-sm text-gray-500">{{$employee->leave_count}}</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">{{$employee->absent_count}}</td>
+                                            <td class="px-6 py-4 text-sm text-gray-900">{{$employee->average_score}}</td>
                                             <td class="px-6 py-4 text-sm text-gray-900">{{$employee->promotion_count}}</td>
                                         </tr>
                                     @endforeach

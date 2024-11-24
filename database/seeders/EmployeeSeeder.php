@@ -17,7 +17,7 @@ class EmployeeSeeder extends Seeder
      */
     public function run(): void
     {
-        $employee_data = 5000;
+        $employee_data = 15000;
         Employee::factory($employee_data)->create()->each(function ($employee) {
             $attendanceCount = rand(30, 40);
             $leaveCount = rand(5, 10);

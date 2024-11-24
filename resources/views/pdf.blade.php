@@ -2,62 +2,68 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Details</title>
+    <title>Employee Report</title>
     <style>
         body {
-            font-family: 'DejaVu Sans', sans-serif;
-            font-size: 12px;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
         }
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        table, th, td {
-            border: 1px solid black;
+            margin: 20px 0;
         }
         th, td {
-            padding: 8px;
+            padding: 10px;
             text-align: left;
+            border-bottom: 1px solid #ddd;
         }
         th {
-            background-color: #f4f4f4;
+            background-color: #f2f2f2;
         }
     </style>
 </head>
 <body>
-    <h1>Employee Details</h1>
-    <table class="">
-        <thead class="">
-          <tr>
-            <th class="">#</th>
-            <th class="">Name</th>
-            <th class="">Department</th>
-            <th class="">Position</th>
-            <th class="">Salary</th>
-            <th class="">Attendance</th>
-            <th class="">Leaves </th>
-            <th class="">Performances</th>
-            <th class="">Promotions</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200">
-          @foreach ($employees as $key => $employee)
-            <tr>
-                <td class="">{{$key+1}}</td>
-                <td class="">{{$employee->name}}</td>
-                <td class="">{{$employee->department->name}}</td>
-                <td class="">{{$employee->position}}</td>
-                <td class="">{{$employee->salary->base_salary . ' TK'}}</td>
-                <td class="">{{$employee->attendances()->where('status','Present')->count()}}</td>
-                <td class="">{{$employee->leaves->count()}}</td>
-                <td class="">{{$employee->performances->count()}}</td>
-                <td class="">{{$employee->promotions->count()}}</td>
-            </tr>
-          @endforeach
 
-        </tbody>
-      </table>
+<h2 style="text-align: center;">Employee Report</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Position</th>
+            <th>Department</th>
+            <th>Base Salary</th>
+            <th>Attendance Count</th>
+            <th>Absent Count</th>
+            <th>Average Present</th>
+            <th>Average Leave</th>
+            <th>Leave Count</th>
+            <th>Average Score</th>
+            <th>Promotion Count</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach ($employees as $employee)
+            <tr>
+                <td>{{ $employee->name }}</td>
+                <td>{{ $employee->position }}</td>
+                <td>{{ $employee->department_name }}</td>
+                <td>{{ $employee->base_salary }}</td>
+                <td>{{ $employee->attendance_count }}</td>
+                <td>{{ $employee->absent_count }}</td>
+                <td>{{ $employee->average_present }}</td>
+                <td>{{ $employee->average_leave }}</td>
+                <td>{{ $employee->leave_count }}</td>
+                <td>{{ $employee->average_score }}</td>
+                <td>{{ $employee->promotion_count }}</td>
+            </tr>
+        @endforeach
+    </tbody>
+</table>
+
 </body>
 </html>
