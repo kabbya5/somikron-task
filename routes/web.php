@@ -11,4 +11,5 @@ use Illuminate\Support\Facades\Route;
 Route::controller(PDFGenaratorController::class)->group(function(){
     Route::get('/', 'index');
     Route::get('/generate/pdf', 'pdfGenerate');
+    Route::get('pdf/status/{jobId}',  'checkStatus')->name('pdf.status');
 });

@@ -17,12 +17,12 @@ class EmployeeSeeder extends Seeder
      */
     public function run(): void
     {
-        $employee_data = 15000;
+        $employee_data = 2000;
         Employee::factory($employee_data)->create()->each(function ($employee) {
-            $attendanceCount = rand(30, 40);
-            $leaveCount = rand(5, 10);
-            $performanceCount = rand(1, 10);
-            $promotionCount = rand(0, 5);
+            $attendanceCount = rand(1, 5);
+            $leaveCount = rand(1, 3);
+            $performanceCount = rand(1, 3);
+            $promotionCount = rand(0, 3);
             $salaryCount = 1;
 
             Attendance::factory($attendanceCount)->create([
