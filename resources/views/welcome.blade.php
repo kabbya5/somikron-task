@@ -15,7 +15,7 @@
                 <div class="container mx-auto">
                     <div class="flex justify-between px-4">
                         <a href="/" class="font-semibold text-xl text-black">Home</a>
-                        <button id="generate-pdf" class="bg-blue-500 text-white px-4 py-2 rounded">Generate PDF</button>
+                        <a href="/generate/pdf"  class="bg-blue-500 text-white px-4 py-2 rounded">Generate PDF</a>
                     </div>
                 </div>
 

@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Jobs\GenerateEmployeePDF;
 use App\Models\PDFJob;
-use Barryvdh\DomPDF\Facade\Pdf;
+use TCPDF;
 use DB;
 use Illuminate\Http\Request;
 
@@ -61,28 +61,60 @@ class PDFGenaratorController extends Controller
 
         return view('welcome', compact('employees'));
     }
+    public function pdfGenerate() {
 
-    public function pdfGenerate(){
-        $pdfJob = PDFJob::create([
-            'status' => 'pending'
-        ]);
+        $pdf = new TCPDF();
 
-        GenerateEmployeePDF::dispatch($pdfJob->id);
+        $pdf->SetCreator('Laravel');
+        $pdf->SetAuthor('Your Name');
+        $pdf->SetTitle('Employee Report');
+        $pdf->SetSubject('Employee Report');
+        $pdf->SetKeywords('TCPDF, Laravel, PDF, Employee Report');
+        $pdf->SetHeaderData('', 0, 'Employee Report', 'Generated using TCPDF');
+        $pdf->setFooterData();
+        $pdf->SetMargins(10, 20, 10);
+        $pdf->SetHeaderMargin(10);
+        $pdf->SetFooterMargin(10);
+        $pdf->SetAutoPageBreak(true, 20);
+        $pdf->SetFont('helvetica', '', 10);
+        $pdf->AddPage();
 
-        return response()->json(['status' => 'PDF generation started', 'job_id' => $pdfJob->id]);
-    }
+        $pdfContent = '<h1 style="text-align: center;">Employee Report</h1>';
+        $pdfContent .= '<table border="1" cellpadding="5" cellspacing="0" width="100%">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Position</th>
+                    <th>Department</th>
+                </tr>
+            </thead>
+            <tbody>';
 
-    public function checkStatus($jobId)
-    {
-        $job = PdfJob::find($jobId);
+        try {
+            DB::table('employees')
+                ->join('departments', 'employees.department_id', '=', 'departments.id')
+                ->select('employees.name', 'employees.position', 'departments.name AS department_name')
+                ->chunk(50, function($chunk) use ($pdf, &$pdfContent) {
+                    foreach ($chunk as $employee) {
+                        $pdfContent .= '<tr>';
+                        $pdfContent .= '<td>' . htmlspecialchars($employee->name) . '</td>';
+                        $pdfContent .= '<td>' . htmlspecialchars($employee->position) . '</td>';
+                        $pdfContent .= '<td>' . htmlspecialchars($employee->department_name) . '</td>';
+                        $pdfContent .= '</tr>';
+                    }
+                });
 
-        if ($job) {
-            return response()->json([
-                'status' => $job->status,
-                'file_path' => $job->file_path
-            ]);
+            $pdfContent .= '</tbody></table>';
+
+            $pdf->writeHTML($pdfContent, true, false, true, false, '');
+
+            $pdf->Output('employee-report.pdf', 'I');
+
+        } catch (\Exception $e) {
+            Log::error('Error generating PDF: ' . $e->getMessage());
+            return response()->json(['error' => 'PDF generation failed. Please try again.'], 500);
         }
-
-        return response()->json(['status' => 'Job not found'], 404);
     }
+
+
 }
