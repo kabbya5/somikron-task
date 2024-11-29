@@ -13,9 +13,9 @@
         <main>
             <div class="header py-3 shadow-lg border-2 border-slate-300">
                 <div class="container mx-auto">
-                    <div class="flex justify-between px-4">
+                    <div class="flex justify-between px-4 button-group">
                         <a href="/" class="font-semibold text-xl text-black">Home</a>
-                        <a href="/generate/pdf"  class="bg-blue-500 text-white px-4 py-2 rounded">Generate PDF</a>
+                        <a id="generate-pdf" class="bg-blue-500 text-white px-4 py-2 rounded">Generate PDF</a>
                     </div>
                 </div>
 
@@ -75,10 +75,7 @@
         <script>
             $(document).ready(function () {
                 $('#generate-pdf').on('click', function () {
-
                     $(this).prop('disabled', true);
-
-
                     $.ajax({
                         url: '/generate/pdf',
                         method: 'get',
@@ -92,34 +89,35 @@
                 function checkProgress(jobId) {
                     const interval = setInterval(function () {
                         $.ajax({
-                            url: '/pdf/status/' + jobId, // Your Laravel route for checking the status
+                            url: '/pdf/status/' + jobId,
                             method: 'GET',
                             success: function (response) {
                                 const progress = response.progress;
                                 const status = response.status;
                                 const filePath = response.file_path;
 
-                                // Update the progress bar
+
                                 $('#progress-bar').css('width', progress + '%');
                                 $('#progress-text').text('Progress: ' + progress + '%');
 
-                                if (progress === 100) {
+                                if (status !== 'pending') {
                                     clearInterval(interval);
-                                    $('#progress-text').text('PDF Generation Completed!');
 
-                                    // Optionally, provide the user with a download link
+
                                     if (filePath) {
                                         const downloadLink = $('<a>')
                                             .attr('href', '/storage/' + filePath)
                                             .attr('download', 'employee_report.pdf')
                                             .addClass('text-blue-500 underline mt-4 inline-block')
                                             .text('Download PDF');
-                                        $('body').append(downloadLink);
+                                        $('.button-group').append(downloadLink);
                                     }
+
+                                    clearInterval(interval);
                                 }
                             }
                         });
-                    }, 2000); // Check every 2 seconds
+                    }, 1000);
                 }
             });
         </script>

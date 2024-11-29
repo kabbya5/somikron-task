@@ -14,9 +14,11 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 20px 0;
+            margin: 10px 0;
+            font-size: 10px;
         }
         th, td {
+            word-wrap: break-word;
             padding: 10px;
             text-align: left;
             border-bottom: 1px solid #ddd;

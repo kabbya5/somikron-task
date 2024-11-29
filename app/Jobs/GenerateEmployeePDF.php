@@ -5,7 +5,7 @@ namespace App\Jobs;
 use App\Models\PDFJob;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Exception;
-use Illuminate\Cache\RateLimiting\Limit;
+use setasign\Fpdi\Fpdi;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -37,78 +37,93 @@ class GenerateEmployeePDF implements ShouldQueue
                 throw new Exception('PDF job not found');
             }
 
-            $totalEmployees = 20;
-            $chunkSize = 10;
-            $pdfContent = '<h1 style="text-align: center;">Employee Attendance and Performance Report</h1>';
-            $pdfContent .= '<table border="1" cellpadding="10" cellspacing="0" width="100%">';
-            $pdfContent .= '<thead><tr>
-                                <th>Name</th>
-                                <th>Position</th>
-                                <th>Department</th>
-                                <th>Salary</th>
-                                <th>Attendance Count</th>
-                                <th>Absent Count</th>
-                                <th>Avg. Present</th>
-                                <th>Avg. Leave</th>
-                                <th>Leave Count</th>
-                                <th>Avg. Score</th>
-                                <th>Promotion Count</th>
-                            </tr></thead><tbody>';
+            $directory = storage_path('app/pdfs');
 
-                    DB::table('employees')
-                    ->selectRaw("employees.name, employees.position, departments.name AS department_name, salaries.base_salary,
-                                (SELECT COUNT(DISTINCT attendances.id) FROM attendances WHERE attendances.employee_id = employees.id AND attendances.status = 'Present') AS attendance_count,
-                                (SELECT COUNT(DISTINCT attendances.id) FROM attendances WHERE attendances.employee_id = employees.id AND attendances.status = 'Absent') AS absent_count,
-                                (SELECT ROUND(AVG(present_at), 2) FROM attendances WHERE attendances.employee_id = employees.id AND attendances.status = 'Present') AS average_present,
-                                (SELECT ROUND(AVG(leave_at), 2) FROM attendances WHERE attendances.employee_id = employees.id AND attendances.status = 'Present') AS average_leave,
-                                (SELECT COUNT(DISTINCT leaves.id) FROM leaves WHERE leaves.employee_id = employees.id) AS leave_count,
-                                (SELECT ROUND(AVG(score), 2) FROM performances WHERE performances.employee_id = employees.id) AS average_score,
-                                (SELECT COUNT(DISTINCT promotions.id) FROM promotions WHERE promotions.employee_id = employees.id) AS promotion_count")
-                    ->join('departments', 'employees.department_id', '=', 'departments.id')
-                    ->join('salaries', 'employees.id', '=', 'salaries.employee_id')
-                    ->orderBy('employees.id')
-                    ->limit(20)
-                    ->chunkById($chunkSize, function ($employees) use (&$pdfContent, $pdfJob, $totalEmployees) {
-                        foreach ($employees as $employee) {
-                            $pdfContent .= '<tr>';
-                            $pdfContent .= '<td>' . $employee->name . '</td>';
-                            $pdfContent .= '<td>' . $employee->position . '</td>';
-                            $pdfContent .= '<td>' . $employee->department_name . '</td>';
-                            $pdfContent .= '<td>' . number_format($employee->base_salary, 2) . '</td>';
-                            $pdfContent .= '<td>' . $employee->attendance_count . '</td>';
-                            $pdfContent .= '<td>' . $employee->absent_count . '</td>';
-                            $pdfContent .= '<td>' . $employee->average_present . '</td>';
-                            $pdfContent .= '<td>' . $employee->average_leave . '</td>';
-                            $pdfContent .= '<td>' . $employee->leave_count . '</td>';
-                            $pdfContent .= '<td>' . $employee->average_score . '</td>';
-                            $pdfContent .= '<td>' . $employee->promotion_count . '</td>';
-                            $pdfContent .= '</tr>';
-                        }
-
-                        $processedEmployees = $pdfJob->progress + count($employees);
-                        $pdfJob->progress = ceil(($processedEmployees / $totalEmployees) * 100);
-                        $pdfJob->save();
-                    });
-
-                $pdfContent .= '</tbody></table>';
-
-                // Create PDF
-                $pdf = Pdf::loadHTML($pdfContent);
-                $filePath = 'pdf_reports/employee_report_' . time() . '.pdf';
-                $pdf->save(storage_path('app/' . $filePath));
-
-                // Update the job with file path and status
-                $pdfJob->status = 'completed';
-                $pdfJob->file_path = $filePath;
-                $pdfJob->save();
-
-            } catch (Exception $e) {
-                Log::error('Error generating PDF: ' . $e->getMessage());
-
-                if (isset($pdfJob)) {
-                    $pdfJob->status = 'failed';
-                    $pdfJob->save();
-                }
+            if (!is_dir($directory)) {
+                mkdir($directory, 0777, true);
             }
+
+            $totalEmployees = DB::select("
+                SELECT COUNT(*) as total FROM employees
+            ")[0]->total;
+
+
+            $chunkSize = 400;
+
+            DB::table('employees')
+                ->leftJoin('departments', 'employees.department_id', '=', 'departments.id')
+                ->leftJoin('salaries', 'employees.id', '=', 'salaries.employee_id')
+                ->leftJoin('attendances', 'employees.id', '=', 'attendances.employee_id')
+                ->leftJoin('leaves', 'employees.id', '=', 'leaves.employee_id')
+                ->leftJoin('performances', 'employees.id', '=', 'performances.employee_id')
+                ->leftJoin('promotions', 'employees.id', '=', 'promotions.employee_id')
+                ->select([
+                    'employees.id',
+                    'employees.name',
+                    'employees.position',
+                    'departments.name AS department_name',
+                    'salaries.base_salary',
+                    DB::raw("COUNT(CASE WHEN attendances.status = 'Present' THEN attendances.id END) AS attendance_count"),
+                    DB::raw("COUNT(CASE WHEN attendances.status = 'Absent' THEN attendances.id END) AS absent_count"),
+                    DB::raw("ROUND(AVG(CASE WHEN attendances.status = 'Present' THEN attendances.present_at END), 2) AS average_present"),
+                    DB::raw("ROUND(AVG(CASE WHEN attendances.status = 'Present' THEN attendances.leave_at END), 2) AS average_leave"),
+                    DB::raw("COUNT(DISTINCT leaves.id) AS leave_count"),
+                    DB::raw("ROUND(AVG(performances.score), 2) AS average_score"),
+                    DB::raw("COUNT(DISTINCT promotions.id) AS promotion_count"),
+                ])
+                ->groupBy('employees.id', 'employees.name',
+                 'employees.position','departments.name', 'salaries.base_salary')
+                ->orderBy('employees.id')
+                ->chunk($chunkSize, function ($employees,$chunkIndex) use ($directory,$chunkSize, $pdfJob,$totalEmployees) {
+                    $pdfContent = view('pdf', compact('employees'))->render();
+                    $pdf = Pdf::loadHTML($pdfContent);
+                    $pdfPath = "{$directory}/chunk_{$pdfJob->id}_{$chunkIndex}.pdf";
+                    $pdf->save($pdfPath);
+
+                    $processedEmployees = ($chunkIndex * $chunkSize) + count($employees);
+                    $progress = ceil(($processedEmployees / $totalEmployees) * 100);
+                    $pdfJob->progress = $progress;
+                    $pdfJob->save();
+                });
+
+            $this->mergePDFs($directory,$pdfJob);
+
+        } catch (Exception $e) {
+            Log::error('Error generating PDF: ' . $e->getMessage());
+
+            if (isset($pdfJob)) {
+                $pdfJob->status = 'failed';
+                $pdfJob->save();
+            }
+        }
+    }
+
+    private function mergePDFs($directory, $pdfJob)
+    {
+        $pdfMerger = new Fpdi();
+
+        $pdfFiles = glob("{$directory}/chunk_{$pdfJob->id}_*.pdf");
+
+        foreach ($pdfFiles as $file) {
+            $pageCount = $pdfMerger->setSourceFile($file);
+
+            for ($page = 1; $page <= $pageCount; $page++) {
+                $templateId = $pdfMerger->importPage($page);
+                $pdfMerger->AddPage();
+                $pdfMerger->useTemplate($templateId);
+            }
+        }
+
+        $mergedPdfPath = "{$directory}/merged_report_{$pdfJob->id}.pdf";
+        $pdfMerger->Output($mergedPdfPath, 'F');
+
+        $pdfJob->status = 'completed';
+        $pdfJob->file_path = $mergedPdfPath;
+        $pdfJob->progress = 100;
+        $pdfJob->save();
+
+        foreach ($pdfFiles as $file) {
+            unlink($file);
+        }
     }
 }
